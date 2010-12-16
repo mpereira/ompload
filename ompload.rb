@@ -65,8 +65,7 @@ module Ompload
       options[:clip] = false unless xclip_installed?
 
       if (ARGV.size < 1 && (stdin.nil? || stdin.empty?)) || options[:help]
-        STDERR.puts USAGE
-        Process.exit
+        abort(USAGE)
       end
 
       errors = 0

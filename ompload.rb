@@ -12,6 +12,11 @@ require 'getoptlong'
 require 'tempfile'
 require 'iconv'
 
+module Omploader
+  URL = 'http://ompldr.org/'
+  MAX_FILE_SIZE = 2**30
+end
+
 quiet = false
 url_only = false
 help = false
@@ -84,9 +89,6 @@ errors = 0
 
 wait = 5
 
-Url = 'http://ompldr.org/'
-Max_size = 2**30
-
 used_stdin = false
 first = true
 
@@ -95,8 +97,8 @@ argv.each do |arg|
     STDERR.puts "Invalid argument '#{arg}': file does not exist (or is not a regular file)."
     errors += 1
     next
-  elsif !arg.empty? && File.size(arg) > Max_size
-    STDERR.puts "Error omploading '#{arg}': file exceeds " + (Max_size).to_s + " bytes (size was " + File.size(arg).to_s + ")."
+  elsif !arg.empty? && File.size(arg) > Omploader::MAX_FILE_SIZE
+    STDERR.puts "Error omploading '#{arg}': file exceeds " + (Omploader::MAX_FILE_SIZE).to_s + " bytes (size was " + File.size(arg).to_s + ")."
     errors += 1
     next
   end
@@ -114,9 +116,9 @@ argv.each do |arg|
     # upload from stdin
     puts "Progress for '#{arg}'" if !quiet && !url_only
     if quiet || url_only
-      p = IO.popen("curl -s -F 'file1=@-;filename=\"#{filename}\"' #{Url}upload -o '#{tmp.path}'", "w+")
+      p = IO.popen("curl -s -F 'file1=@-;filename=\"#{filename}\"' #{Omploader::URL}upload -o '#{tmp.path}'", "w+")
     else
-      p = IO.popen("curl -# -F 'file1=@-;filename=\"#{filename}\"' #{Url}upload -o '#{tmp.path}'", "w+")
+      p = IO.popen("curl -# -F 'file1=@-;filename=\"#{filename}\"' #{Omploader::URL}upload -o '#{tmp.path}'", "w+")
     end
     p.puts stdin
     p.close_write
@@ -128,9 +130,9 @@ argv.each do |arg|
     # escape quotes
     tmp_path = arg.gsub('"', '\"')
     if quiet || url_only
-      %x{curl -s -F file1=@"#{tmp_path}" #{Url}upload -o '#{tmp.path}'}
+      %x{curl -s -F file1=@"#{tmp_path}" #{Omploader::URL}upload -o '#{tmp.path}'}
     else
-      %x{curl -# -F file1=@"#{tmp_path}" #{Url}upload -o '#{tmp.path}'}
+      %x{curl -# -F file1=@"#{tmp_path}" #{Omploader::URL}upload -o '#{tmp.path}'}
     end
   end
   if !File.size?(tmp.path)
@@ -144,8 +146,8 @@ argv.each do |arg|
   # parse for an ID
   if output =~ /View file: <a href="v([A-Za-z0-9+\/]+)">/
     id = $1
-    puts "Omploaded '#{arg}' to #{Url}v#{id}" if !quiet
-    xclip_buf += "#{Url}v#{id}\n" unless !want_xclip
+    puts "Omploaded '#{arg}' to #{Omploader::URL}v#{id}" if !quiet
+    xclip_buf += "#{Omploader::URL}v#{id}\n" unless !want_xclip
     wait = 5
   elsif output =~ /Slow down there, cowboy\./
     wait += 60

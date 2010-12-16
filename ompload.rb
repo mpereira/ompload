@@ -12,8 +12,6 @@ require 'getoptlong'
 require 'tempfile'
 require 'iconv'
 
-argv = Array.new
-
 quiet = false
 url_only = false
 help = false
@@ -28,13 +26,11 @@ rescue Errno::EAGAIN
   # We just ignore this
 end
 
-opts = GetoptLong.new(
-  [ '--help',     '-h', GetoptLong::NO_ARGUMENT       ],
-  [ '--filename', '-f', GetoptLong::REQUIRED_ARGUMENT ],
-  [ '--quiet',    '-q', GetoptLong::NO_ARGUMENT       ],
-  [ '--url',      '-u', GetoptLong::NO_ARGUMENT       ],
-  [ '--no-clip',  '-n', GetoptLong::NO_ARGUMENT       ]
-)
+opts = GetoptLong.new([ '--help',     '-h', GetoptLong::NO_ARGUMENT       ],
+                      [ '--filename', '-f', GetoptLong::REQUIRED_ARGUMENT ],
+                      [ '--quiet',    '-q', GetoptLong::NO_ARGUMENT       ],
+                      [ '--url',      '-u', GetoptLong::NO_ARGUMENT       ],
+                      [ '--no-clip',  '-n', GetoptLong::NO_ARGUMENT       ])
 
 opts.each do |opt, arg|
   case opt
@@ -51,7 +47,7 @@ opts.each do |opt, arg|
   end
 end
 
-ARGV.each do |a| argv << a end
+argv = ARGV.dup
 
 nocurl = false
 curl = %x{curl --version 2> /dev/null}

@@ -43,6 +43,10 @@ module Ompload
       !%x{curl --version 2> /dev/null}.empty?
     end
 
+    def xclip_installed?
+      !%x{which xclip 2> /dev/null}.empty?
+    end
+
     def run(argv, options = {})
       @argv = argv.dup
       @options = options
@@ -58,10 +62,7 @@ module Ompload
         abort('Error: curl missing or not in path. Cannot continue.')
       end
 
-      xclip = %x{which xclip 2> /dev/null}
-      if xclip.empty?
-        want_xclip = false
-      end
+      options[:clip] = false unless xclip_installed?
 
       if (ARGV.size < 1 && (stdin.nil? || stdin.empty?)) || options[:help]
         STDERR.puts USAGE
@@ -74,6 +75,7 @@ module Ompload
 
       used_stdin = false
       first = true
+      xclip_buf = ''
 
       @argv.each do |arg|
         if stdin.nil? && !used_stdin && !File.file?(arg)
@@ -130,7 +132,7 @@ module Ompload
         if output =~ /View file: <a href="v([A-Za-z0-9+\/]+)">/
           id = $1
           puts "Omploaded '#{arg}' to #{Omploader::URL}v#{id}" if !options[:quiet]
-          xclip_buf += "#{Omploader::URL}v#{id}\n" unless !want_xclip
+          xclip_buf += "#{Omploader::URL}v#{id}\n" unless !options[:clip]
           wait = 5
         elsif output =~ /Slow down there, cowboy\./
           wait += 60
@@ -144,7 +146,7 @@ module Ompload
         end
       end
 
-      if want_xclip && !xclip_buf.empty?
+      if options[:clip] && !xclip_buf.empty?
         p = IO.popen("xclip", "w+")
         p.puts xclip_buf
       end
@@ -168,7 +170,6 @@ opts = GetoptLong.new(['--help',     '-h', GetoptLong::NO_ARGUMENT       ],
 
 options = {}
 options[:filename] = 'pasta'
-options[:xclip_buf] = ''
 
 opts.each do |opt, arg|
   case opt
@@ -181,7 +182,7 @@ opts.each do |opt, arg|
   when '--url'
     options[:url] = true
   when '--no-clip'
-    options[:want_xclip] = false
+    options[:clip] = false
   end
 end
 

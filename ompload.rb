@@ -22,6 +22,23 @@ module Ompload
   module CLI
     extend self
 
+    USAGE = <<-USAGE.gsub(/^      /, '')
+      Usage:  ompload [-h|--help] [options] [file(s)]
+        -q, --quiet     Only output errors and warnings
+        -u, --url       Only output URL when finished
+        -f, --filename  Filename to use when posting data
+                        from stdin
+        -n, --no-clip   Disable copying of URL to clipboard
+                        (this feature uses the xclip tool)
+
+        You can supply a list of files or data via stdin (or both)
+
+        This script requires a copy of cURL in the path,
+        and will automatically copy the list of URLs to.
+        the X11 clipboard if the `xclip\ program is
+        available in your PATH.
+    USAGE
+
     def run(argv, options = {})
       @argv = argv.dup
       @options = options
@@ -47,20 +64,7 @@ module Ompload
       end
 
       if (ARGV.size < 1 && (stdin.nil? || stdin.empty?)) || options[:help] || nocurl
-        STDERR.puts 'Usage:  ompload [-h|--help] [options] [file(s)]'
-        STDERR.puts '  -q, --quiet     Only output errors and warnings'
-        STDERR.puts '  -u, --url       Only output URL when finished'
-        STDERR.puts '  -f, --filename  Filename to use when posting data'
-        STDERR.puts '                  from stdin'
-        STDERR.puts '  -n, --no-clip   Disable copying of URL to clipboard'
-        STDERR.puts '                  (this feature uses the xclip tool)'
-        STDERR.puts
-        STDERR.puts '  You can supply a list of files or data via stdin (or both)'
-        STDERR.puts
-        STDERR.puts '  This script requires a copy of cURL in the path,'
-        STDERR.puts '  and will automatically copy the list of URLs to.'
-        STDERR.puts '  the X11 clipboard if the `xclip\' program is'
-        STDERR.puts '  available in your PATH.'
+        STDERR.puts USAGE
         Process.exit
       end
 

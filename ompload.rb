@@ -57,8 +57,8 @@ nocurl = false
 curl = %x{curl --version 2> /dev/null}
 if curl.empty?
   nocurl = true
-  $stderr.puts 'Error: curl missing or not in path.  Cannot continue.'
-  $stderr.puts
+  STDERR.puts 'Error: curl missing or not in path.  Cannot continue.'
+  STDERR.puts
 end
 
 xclip = %x{which xclip 2> /dev/null}
@@ -67,20 +67,20 @@ if xclip.empty?
 end
 
 if (ARGV.size < 1 and (stdin.nil? or stdin.empty?)) or help or nocurl
-  $stderr.puts 'Usage:  ompload [-h|--help] [options] [file(s)]'
-  $stderr.puts '  -q, --quiet     Only output errors and warnings'
-  $stderr.puts '  -u, --url       Only output URL when finished'
-  $stderr.puts '  -f, --filename  Filename to use when posting data'
-  $stderr.puts '                  from stdin'
-  $stderr.puts '  -n, --no-clip   Disable copying of URL to clipboard'
-  $stderr.puts '                  (this feature uses the xclip tool)'
-  $stderr.puts
-  $stderr.puts '  You can supply a list of files or data via stdin (or both)'
-  $stderr.puts
-  $stderr.puts '  This script requires a copy of cURL in the path,'
-  $stderr.puts '  and will automatically copy the list of URLs to.'
-  $stderr.puts '  the X11 clipboard if the `xclip\' program is'
-  $stderr.puts '  available in your PATH.'
+  STDERR.puts 'Usage:  ompload [-h|--help] [options] [file(s)]'
+  STDERR.puts '  -q, --quiet     Only output errors and warnings'
+  STDERR.puts '  -u, --url       Only output URL when finished'
+  STDERR.puts '  -f, --filename  Filename to use when posting data'
+  STDERR.puts '                  from stdin'
+  STDERR.puts '  -n, --no-clip   Disable copying of URL to clipboard'
+  STDERR.puts '                  (this feature uses the xclip tool)'
+  STDERR.puts
+  STDERR.puts '  You can supply a list of files or data via stdin (or both)'
+  STDERR.puts
+  STDERR.puts '  This script requires a copy of cURL in the path,'
+  STDERR.puts '  and will automatically copy the list of URLs to.'
+  STDERR.puts '  the X11 clipboard if the `xclip\' program is'
+  STDERR.puts '  available in your PATH.'
   Process.exit
 end
 
@@ -96,11 +96,11 @@ first = true
 
 argv.each do |arg|
   if stdin.nil? and !used_stdin and !File.file?(arg)
-    $stderr.puts "Invalid argument '#{arg}': file does not exist (or is not a regular file)."
+    STDERR.puts "Invalid argument '#{arg}': file does not exist (or is not a regular file)."
     errors += 1
     next
   elsif !arg.empty? and File.size(arg) > Max_size
-    $stderr.puts "Error omploading '#{arg}': file exceeds " + (Max_size).to_s + " bytes (size was " + File.size(arg).to_s + ")."
+    STDERR.puts "Error omploading '#{arg}': file exceeds " + (Max_size).to_s + " bytes (size was " + File.size(arg).to_s + ")."
     errors += 1
     next
   end
@@ -138,7 +138,7 @@ argv.each do |arg|
     end
   end
   if !File.size?(tmp.path)
-    $stderr.puts "Error omploading '#{arg}'"
+    STDERR.puts "Error omploading '#{arg}'"
     errors += 1
     next
   end
@@ -154,11 +154,11 @@ argv.each do |arg|
   elsif output =~ /Slow down there, cowboy\./
     wait += 60
     argv << arg
-    $stderr.puts "Got throttled when trying to ompload '#{arg}'"
-    $stderr.puts "Increasing wait and attempting to continue..."
+    STDERR.puts "Got throttled when trying to ompload '#{arg}'"
+    STDERR.puts "Increasing wait and attempting to continue..."
     errors += 1
   else
-    $stderr.puts "Error omploading '#{arg}'"
+    STDERR.puts "Error omploading '#{arg}'"
     errors += 1
   end
 

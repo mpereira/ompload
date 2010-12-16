@@ -39,6 +39,10 @@ module Ompload
         available in your PATH.
     USAGE
 
+    def curl_installed?
+      !%x{curl --version 2> /dev/null}.empty?
+    end
+
     def run(argv, options = {})
       @argv = argv.dup
       @options = options
@@ -50,12 +54,8 @@ module Ompload
         # We just ignore this
       end
 
-      nocurl = false
-      curl = %x{curl --version 2> /dev/null}
-      if curl.empty?
-        nocurl = true
-        STDERR.puts 'Error: curl missing or not in path.  Cannot continue.'
-        STDERR.puts
+      unless curl_installed?
+        abort('Error: curl missing or not in path. Cannot continue.')
       end
 
       xclip = %x{which xclip 2> /dev/null}
@@ -63,7 +63,7 @@ module Ompload
         want_xclip = false
       end
 
-      if (ARGV.size < 1 && (stdin.nil? || stdin.empty?)) || options[:help] || nocurl
+      if (ARGV.size < 1 && (stdin.nil? || stdin.empty?)) || options[:help]
         STDERR.puts USAGE
         Process.exit
       end
@@ -75,7 +75,7 @@ module Ompload
       used_stdin = false
       first = true
 
-      argv.each do |arg|
+      @argv.each do |arg|
         if stdin.nil? && !used_stdin && !File.file?(arg)
           STDERR.puts "Invalid argument '#{arg}': file does not exist (or is not a regular file)."
           errors += 1
@@ -134,7 +134,7 @@ module Ompload
           wait = 5
         elsif output =~ /Slow down there, cowboy\./
           wait += 60
-          argv << arg
+          @argv << arg
           STDERR.puts "Got throttled when trying to ompload '#{arg}'"
           STDERR.puts "Increasing wait and attempting to continue..."
           errors += 1
@@ -142,7 +142,6 @@ module Ompload
           STDERR.puts "Error omploading '#{arg}'"
           errors += 1
         end
-
       end
 
       if want_xclip && !xclip_buf.empty?

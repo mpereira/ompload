@@ -26,7 +26,7 @@ xclip_buf = ''
 
 # Pipe?
 begin
-  stdin = STDIN.read_nonblock(4096)
+  stdin = STDIN.read(4096)
 rescue Errno::EAGAIN
   # We just ignore this
 end

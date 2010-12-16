@@ -69,9 +69,7 @@ module Ompload
       end
 
       errors = 0
-
       wait = 5
-
       used_stdin = false
       first = true
       xclip_buf = ''

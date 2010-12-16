@@ -66,7 +66,7 @@ if xclip.empty?
   want_xclip = false
 end
 
-if (ARGV.size < 1 and (stdin.nil? or stdin.empty?)) or help or nocurl
+if (ARGV.size < 1 && (stdin.nil? || stdin.empty?)) || help || nocurl
   STDERR.puts 'Usage:  ompload [-h|--help] [options] [file(s)]'
   STDERR.puts '  -q, --quiet     Only output errors and warnings'
   STDERR.puts '  -u, --url       Only output URL when finished'
@@ -95,11 +95,11 @@ used_stdin = false
 first = true
 
 argv.each do |arg|
-  if stdin.nil? and !used_stdin and !File.file?(arg)
+  if stdin.nil? && !used_stdin && !File.file?(arg)
     STDERR.puts "Invalid argument '#{arg}': file does not exist (or is not a regular file)."
     errors += 1
     next
-  elsif !arg.empty? and File.size(arg) > Max_size
+  elsif !arg.empty? && File.size(arg) > Max_size
     STDERR.puts "Error omploading '#{arg}': file exceeds " + (Max_size).to_s + " bytes (size was " + File.size(arg).to_s + ")."
     errors += 1
     next
@@ -107,17 +107,17 @@ argv.each do |arg|
 
   if !first
     # try not to hammer the server
-    puts 'Sleeping for ' + wait.to_s + 's' if !quiet and !url_only
+    puts 'Sleeping for ' + wait.to_s + 's' if !quiet && !url_only
     sleep(wait)
   else
     first = false
   end
 
   tmp = Tempfile.new(filename)
-  if !stdin.nil? and !used_stdin
+  if !stdin.nil? && !used_stdin
     # upload from stdin
-    puts "Progress for '#{arg}'" if !quiet and !url_only
-    if quiet or url_only
+    puts "Progress for '#{arg}'" if !quiet && !url_only
+    if quiet || url_only
       p = IO.popen("curl -s -F 'file1=@-;filename=\"#{filename}\"' #{Url}upload -o '#{tmp.path}'", "w+")
     else
       p = IO.popen("curl -# -F 'file1=@-;filename=\"#{filename}\"' #{Url}upload -o '#{tmp.path}'", "w+")
@@ -128,10 +128,10 @@ argv.each do |arg|
     used_stdin = true
   else
     # upload file
-    puts "Progress for '#{arg}'" if !quiet and !url_only
+    puts "Progress for '#{arg}'" if !quiet && !url_only
     # escape quotes
     tmp_path = arg.gsub('"', '\"')
-    if quiet or url_only
+    if quiet || url_only
       %x{curl -s -F file1=@"#{tmp_path}" #{Url}upload -o '#{tmp.path}'}
     else
       %x{curl -# -F file1=@"#{tmp_path}" #{Url}upload -o '#{tmp.path}'}
@@ -164,12 +164,12 @@ argv.each do |arg|
 
 end
 
-if want_xclip and !xclip_buf.empty?
+if want_xclip && !xclip_buf.empty?
   p = IO.popen("xclip", "w+")
   p.puts xclip_buf
 end
 
-if !quiet and !url_only
+if !quiet && !url_only
   if errors < 1
     puts "Success."
   else

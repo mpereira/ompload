@@ -118,16 +118,11 @@ module Ompload
       upload_files_from_argv if ARGV.size > 0
 
       if xclip_installed? && options[:clip] && !@xclip_buffer.empty?
-        p = IO.popen('xclip', 'w+')
-        p.puts @xclip_buffer
+        IO.popen('xclip', 'w+').puts @xclip_buffer
       end
 
       unless options[:quiet]
-        if @errors < 1
-          puts 'Success.'
-        else
-          puts 'Finished with #{@errors} errors.'
-        end
+        puts @errors > 0 ? "Finished with #{@errors} errors." : 'Success.'
       end
     end
   end

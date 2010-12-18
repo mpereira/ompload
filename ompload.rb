@@ -138,8 +138,8 @@ module Ompload
     end
 
     def handle_file(file_path, options = {})
-      puts Message.progress(file_path) unless options[:quiet]
-      response = upload_with_curl(file_path, :silent => options[:quiet])
+      puts Message.progress(file_path) if !options[:quiet] && !options[:url]
+      response = upload_with_curl(file_path, :silent => options[:quiet] || options[:url])
 
       if response =~ /Slow down there, cowboy\./
         raise ThrottledError
@@ -176,7 +176,7 @@ module Ompload
         IO.popen('xclip', 'w+').puts XclipBuffer.instance.content
       end
 
-      unless options[:quiet]
+      if !options[:quiet] && !options[:url]
         if ErrorCounter.instance.count > 0
           puts "Finished with #{ErrorCounter.instance.count} errors."
         else
@@ -189,6 +189,7 @@ end
 
 opts = GetoptLong.new(['--help',    '-h', GetoptLong::NO_ARGUMENT],
                       ['--quiet',   '-q', GetoptLong::NO_ARGUMENT],
+                      [ '--url',    '-u', GetoptLong::NO_ARGUMENT],
                       ['--no-clip', '-n', GetoptLong::NO_ARGUMENT])
 
 options = { :clip => true }
@@ -199,6 +200,8 @@ opts.each do |opt, arg|
     options[:help] = true
   when '--quiet'
     options[:quiet] = true
+  when '--url'
+    options[:url] = true
   when '--no-clip'
     options[:clip] = false
   end

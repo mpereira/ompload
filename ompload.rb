@@ -49,6 +49,10 @@ module Shell
   def xclip_installed?
     !%x{which xclip 2> /dev/null}.empty?
   end
+
+  def piped_data_given?
+    !STDIN.tty?
+  end
 end
 
 module Omploader
@@ -68,6 +72,9 @@ module Ompload
   USAGE = <<-USAGE.gsub(/^    /, '')
     Usage:  ompload [-h|--help] [options] [file(s)]
       -q, --quiet     Only output errors and warnings
+      -u, --url       Only output URL when finished
+      -f, --filename  Filename to use when posting data
+                      from stdin
       -n, --no-clip   Disable copying of URL to clipboard
                       (this feature uses the xclip tool)
 
@@ -114,7 +121,17 @@ module Ompload
   module UploadsHandler
     extend self, Shell
 
-    def handle(file_paths, options = {})
+    def handle_file(file_path, options = {})
+      puts Message.progress(file_path) if !options[:quiet] && !options[:url]
+      response = upload_with_curl({ :file_path => file_path,
+                                    :silent => options[:quiet] || options[:url] })
+      handle_response!(response, file_path, options)
+    rescue ThrottledError
+      STDERR.puts Message.throttled(file_path)
+      sleep(60) and retry
+    end
+
+    def handle_files(file_paths, options = {})
       file_paths.each do |file_path|
         if !File.file?(file_path)
           STDERR.puts Message.invalid_file(file_path)
@@ -128,35 +145,49 @@ module Ompload
       end
     end
 
+    def handle_data(data, options = {})
+      file_name = options[:file_name] || 'piped data'
+      puts Message.progress(file_name) if !options[:quiet] && !options[:url]
+      response = upload_with_curl({ :data => data,
+                                    :file_name => file_name,
+                                    :silent => options[:quiet] || options[:url] })
+      handle_response!(response, file_name, options)
+    rescue ThrottledError
+      STDERR.puts Message.throttled(file_name)
+      sleep(60) and retry
+    end
+
     private
 
-    def upload_with_curl(file_path, options = {})
+    def upload_with_curl(options)
       response = Tempfile.new('ompload')
       progress_bar_or_silent = options[:silent] ? '-s' : '-#'
-      %x{curl #{progress_bar_or_silent} -F file1=@#{file_path.inspect} #{Omploader::UPLOAD_URL} -o '#{response.path}'}
+
+      if options[:data]
+        IO.popen("curl #{progress_bar_or_silent} -F 'file1=@-;filename=#{options[:file_name]}' #{Omploader::UPLOAD_URL} -o '#{response.path}'", "w+") do |pipe|
+          pipe.puts options[:data]
+        end
+      elsif options[:file_path]
+        %x{curl #{progress_bar_or_silent} -F file1=@#{options[:file_path].inspect} #{Omploader::UPLOAD_URL} -o '#{response.path}'}
+      end
+
       IO.read(response.path)
     end
 
-    def handle_file(file_path, options = {})
-      puts Message.progress(file_path) if !options[:quiet] && !options[:url]
-      response = upload_with_curl(file_path, :silent => options[:quiet] || options[:url])
-
+    def handle_response!(response, file_name, options)
       if response =~ /Slow down there, cowboy\./
         raise ThrottledError
       else
         if response =~ /View file: <a href="v([A-Za-z0-9+\/]+)">/
-          puts Message.omploaded(file_path, $1) unless options[:quiet]
+          puts Message.omploaded(file_name, $1) unless options[:quiet]
           if xclip_installed? && options[:clip]
             XclipBuffer.instance.append!("#{Omploader.file_url($1)}")
           end
         else
-          STDERR.puts Message.curl_failed_posting_file(file_path)
+          STDERR.puts Message.curl_failed_posting_file(file_name)
           ErrorCounter.instance.increment!
         end
       end
-    rescue ThrottledError
-      STDERR.puts Message.throttled(file_path)
-      sleep(60) and retry
     end
   end
 
@@ -168,9 +199,10 @@ module Ompload
         abort('error: curl missing or not in path. Cannot continue.')
       end
 
-      abort(USAGE) if ARGV.size < 1 || options[:help]
+      abort(USAGE) if ARGV.size < 1 && !piped_data_given? || options[:help]
 
-      UploadsHandler.handle(argv, options) if ARGV.size > 0
+      UploadsHandler.handle_files(ARGV, options)
+      UploadsHandler.handle_data(STDIN.read(4096), options) if piped_data_given?
 
       if xclip_installed? && options[:clip] && !XclipBuffer.instance.content.empty?
         IO.popen('xclip', 'w+').puts XclipBuffer.instance.content
@@ -187,10 +219,11 @@ module Ompload
   end
 end
 
-opts = GetoptLong.new(['--help',    '-h', GetoptLong::NO_ARGUMENT],
-                      ['--quiet',   '-q', GetoptLong::NO_ARGUMENT],
-                      [ '--url',    '-u', GetoptLong::NO_ARGUMENT],
-                      ['--no-clip', '-n', GetoptLong::NO_ARGUMENT])
+opts = GetoptLong.new(['--help',     '-h', GetoptLong::NO_ARGUMENT],
+                      ['--filename', '-f', GetoptLong::REQUIRED_ARGUMENT],
+                      ['--quiet',    '-q', GetoptLong::NO_ARGUMENT],
+                      ['--url',      '-u', GetoptLong::NO_ARGUMENT],
+                      ['--no-clip',  '-n', GetoptLong::NO_ARGUMENT])
 
 options = { :clip => true }
 
@@ -198,6 +231,8 @@ opts.each do |opt, arg|
   case opt
   when '--help'
     options[:help] = true
+  when '--filename'
+    options[:file_name] = arg
   when '--quiet'
     options[:quiet] = true
   when '--url'

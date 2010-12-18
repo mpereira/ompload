@@ -8,9 +8,48 @@
 # Special thanks to Christoph for a patch.
 #
 
+require 'singleton'
 require 'getoptlong'
 require 'tempfile'
 require 'iconv'
+
+class XclipBuffer
+  include Singleton
+
+  attr_reader :content
+
+  def initialize
+    @content = ''
+  end
+
+  def append!(string)
+    @content += "#{string}\n"
+  end
+end
+
+class ErrorCounter
+  include Singleton
+
+  attr_reader :count
+
+  def initialize
+    @count = 0
+  end
+
+  def increment!
+    @count += 1
+  end
+end
+
+module Shell
+  def curl_installed?
+    !%x{curl --version 2> /dev/null}.empty?
+  end
+
+  def xclip_installed?
+    !%x{which xclip 2> /dev/null}.empty?
+  end
+end
 
 module Omploader
   URL = 'http://ompldr.org'
@@ -72,16 +111,24 @@ module Ompload
     end
   end
 
-  module CLI
-    extend self
+  module UploadsHandler
+    extend self, Shell
 
-    def curl_installed?
-      !%x{curl --version 2> /dev/null}.empty?
+    def handle(file_paths, options = {})
+      file_paths.each do |file_path|
+        if !File.file?(file_path)
+          STDERR.puts Message.invalid_file(file_path)
+          ErrorCounter.instance.increment!
+        elsif File.size(file_path) > MAX_FILE_SIZE
+          STDERR.puts Message.file_too_big(file_path)
+          ErrorCounter.instance.increment!
+        else
+          handle_file(file_path, options)
+        end
+      end
     end
 
-    def xclip_installed?
-      !%x{which xclip 2> /dev/null}.empty?
-    end
+    private
 
     def upload_with_curl(file_path, options = {})
       response = Tempfile.new('ompload')
@@ -90,7 +137,7 @@ module Ompload
       IO.read(response.path)
     end
 
-    def handle_file_upload(file_path, options = {})
+    def handle_file(file_path, options = {})
       puts Message.progress(file_path) unless options[:quiet]
       response = upload_with_curl(file_path, :silent => options[:quiet])
 
@@ -100,31 +147,21 @@ module Ompload
         if response =~ /View file: <a href="v([A-Za-z0-9+\/]+)">/
           puts Message.omploaded(file_path, $1) unless options[:quiet]
           if xclip_installed? && options[:clip]
-            @xclip_buffer += "#{Omploader.file_url($1)}\n"
+            XclipBuffer.instance.append!("#{Omploader.file_url($1)}")
           end
         else
           STDERR.puts Message.curl_failed_posting_file(file_path)
-          @errors += 1
+          ErrorCounter.instance.increment!
         end
       end
     rescue ThrottledError
       STDERR.puts Message.throttled(file_path)
       sleep(60) and retry
     end
+  end
 
-    def handle_uploads(file_paths, options = {})
-      file_paths.each do |file_path|
-        if !File.file?(file_path)
-          STDERR.puts Message.invalid_file(file_path)
-          @errors += 1
-        elsif File.size(file_path) > MAX_FILE_SIZE
-          STDERR.puts Message.file_too_big(file_path)
-          @errors += 1
-        else
-          handle_file_upload(file_path, options)
-        end
-      end
-    end
+  module CLI
+    extend self, Shell
 
     def run(argv, options = {})
       unless curl_installed?
@@ -133,17 +170,18 @@ module Ompload
 
       abort(USAGE) if ARGV.size < 1 || options[:help]
 
-      @errors = 0
-      @xclip_buffer = ''
+      UploadsHandler.handle(argv, options) if ARGV.size > 0
 
-      handle_uploads(argv, options) if ARGV.size > 0
-
-      if xclip_installed? && options[:clip] && !@xclip_buffer.empty?
-        IO.popen('xclip', 'w+').puts @xclip_buffer
+      if xclip_installed? && options[:clip] && !XclipBuffer.instance.content.empty?
+        IO.popen('xclip', 'w+').puts XclipBuffer.instance.content
       end
 
       unless options[:quiet]
-        puts @errors > 0 ? "Finished with #{@errors} errors." : 'Success.'
+        if ErrorCounter.instance.count > 0
+          puts "Finished with #{ErrorCounter.instance.count} errors."
+        else
+          puts 'Success.'
+        end
       end
     end
   end

@@ -53,25 +53,25 @@ module Ompload
       !%x{which xclip 2> /dev/null}.empty?
     end
 
-    def upload_file(file_path)
-      puts "Progress for '#{file_path}'" unless @options[:quiet]
-
+    def upload_with_curl(file_path, options = {})
       response = Tempfile.new('ompload')
+      progress_bar_or_silent = options[:silent] ? '-s' : '-#'
+      %x{curl #{progress_bar_or_silent} -F file1=@#{file_path.inspect} #{Omploader::UPLOAD_URL} -o '#{response.path}'}
+      IO.read(response.path)
+    end
 
-      if @options[:quiet]
-        %x{curl -s -F file1=@#{file_path.inspect} #{Omploader::UPLOAD_URL} -o '#{response.path}'}
-      else
-        %x{curl -# -F file1=@#{file_path.inspect} #{Omploader::UPLOAD_URL} -o '#{response.path}'}
-      end
-
-      xclip_buf = ''
+    def handle_file_upload(file_path)
+      puts "Progress for '#{file_path}'" unless @options[:quiet]
+      response = upload_with_curl(file_path, :silent => @options[:quiet])
 
       if response =~ /Slow down there, cowboy\./
         raise ThrottledError
       else
         if response =~ /View file: <a href="v([A-Za-z0-9+\/]+)">/
           puts "Omploaded '#{file_path}' to #{Omploader.file_url($1)}" unless @options[:quiet]
-          xclip_buf += "#{Omploader.file_url(id)}\n" unless !@options[:clip]
+          if xclip_installed? && @options[:clip]
+            @xclip_buffer += "#{Omploader.file_url(id)}\n"
+          end
         else
           STDERR.puts "Error omploading '#{file_path}'"
           @errors += 1
@@ -80,7 +80,6 @@ module Ompload
     rescue ThrottledError
       STDERR.puts "Got throttled when trying to ompload '#{file_path}'"
       STDERR.puts "Increasing wait and attempting to continue..."
-      @errors += 1
       sleep 60 and retry
     end
 
@@ -96,7 +95,7 @@ module Ompload
                       "#{File.size(file_path)})."
           @errors += 1
         else
-          upload_file(file_path)
+          handle_file_upload(file_path)
         end
       end
     end
@@ -109,19 +108,18 @@ module Ompload
         abort('Error: curl missing or not in path. Cannot continue.')
       end
 
-      options[:clip] = false unless xclip_installed?
-
       if ARGV.size < 1 || options[:help]
         abort(USAGE)
       end
 
       @errors = 0
+      @xclip_buffer = ''
 
       upload_files_from_argv if ARGV.size > 0
 
-      if options[:clip] && !xclip_buf.empty?
+      if xclip_installed? && options[:clip] && !@xclip_buffer.empty?
         p = IO.popen('xclip', 'w+')
-        p.puts xclip_buf
+        p.puts @xclip_buffer
       end
 
       unless options[:quiet]

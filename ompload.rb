@@ -36,11 +36,41 @@ module Ompload
 
       This script requires a copy of cURL in the path,
       and will automatically copy the list of URLs to.
-      the X11 clipboard if the `xclip\ program is
+      the X11 clipboard if the `xclip' program is
       available in your PATH.
   USAGE
 
   class ThrottledError < StandardError; end
+
+  module Message
+    extend self
+
+    def curl_failed_posting_file(file_path)
+      "error: curl failed to return a response uploading '#{file_path}'"
+    end
+
+    def throttled(file_path)
+      "error: got throttled when trying to ompload '#{file_path}'\n" <<
+      "Awaiting 60s and attempting to continue..."
+    end
+
+    def progress(file_path)
+      "Progress for '#{file_path}'"
+    end
+
+    def omploaded(file_path, id)
+      "Omploaded '#{file_path}' to #{Omploader.file_url(id)}"
+    end
+
+    def invalid_file(file_path)
+      "error: '#{file_path}' does not exist or is not a regular file"
+    end
+
+    def file_too_big(file_path)
+      "error: '#{file_path}' exceeds #{MAX_FILE_SIZE} bytes " <<
+      "(size is #{File.size(file_path)})."
+    end
+  end
 
   module CLI
     extend self
@@ -60,62 +90,53 @@ module Ompload
       IO.read(response.path)
     end
 
-    def handle_file_upload(file_path)
-      puts "Progress for '#{file_path}'" unless @options[:quiet]
-      response = upload_with_curl(file_path, :silent => @options[:quiet])
+    def handle_file_upload(file_path, options = {})
+      puts Message.progress(file_path) unless options[:quiet]
+      response = upload_with_curl(file_path, :silent => options[:quiet])
 
       if response =~ /Slow down there, cowboy\./
         raise ThrottledError
       else
         if response =~ /View file: <a href="v([A-Za-z0-9+\/]+)">/
-          puts "Omploaded '#{file_path}' to #{Omploader.file_url($1)}" unless @options[:quiet]
-          if xclip_installed? && @options[:clip]
-            @xclip_buffer += "#{Omploader.file_url(id)}\n"
+          puts Message.omploaded(file_path, $1) unless options[:quiet]
+          if xclip_installed? && options[:clip]
+            @xclip_buffer += "#{Omploader.file_url($1)}\n"
           end
         else
-          STDERR.puts "Error omploading '#{file_path}'"
+          STDERR.puts Message.curl_failed_posting_file(file_path)
           @errors += 1
         end
       end
     rescue ThrottledError
-      STDERR.puts "Got throttled when trying to ompload '#{file_path}'"
-      STDERR.puts "Increasing wait and attempting to continue..."
-      sleep 60 and retry
+      STDERR.puts Message.throttled(file_path)
+      sleep(60) and retry
     end
 
-    def upload_files_from_argv
-      @argv.each do |file_path|
+    def handle_uploads(file_paths, options = {})
+      file_paths.each do |file_path|
         if !File.file?(file_path)
-          STDERR.puts "Invalid argument '#{file_path}': file does not exist (or " <<
-                      "is not a regular file)."
+          STDERR.puts Message.invalid_file(file_path)
           @errors += 1
-        elsif File.size(file_path) > Ompload::MAX_FILE_SIZE
-          STDERR.puts "Error omploading '#{file_path}': file exceeds " <<
-                      "#{Ompload::MAX_FILE_SIZE} bytes (size was " <<
-                      "#{File.size(file_path)})."
+        elsif File.size(file_path) > MAX_FILE_SIZE
+          STDERR.puts Message.file_too_big(file_path)
           @errors += 1
         else
-          handle_file_upload(file_path)
+          handle_file_upload(file_path, options)
         end
       end
     end
 
     def run(argv, options = {})
-      @argv = argv.dup
-      @options = options
-
       unless curl_installed?
-        abort('Error: curl missing or not in path. Cannot continue.')
+        abort('error: curl missing or not in path. Cannot continue.')
       end
 
-      if ARGV.size < 1 || options[:help]
-        abort(USAGE)
-      end
+      abort(USAGE) if ARGV.size < 1 || options[:help]
 
       @errors = 0
       @xclip_buffer = ''
 
-      upload_files_from_argv if ARGV.size > 0
+      handle_uploads(argv, options) if ARGV.size > 0
 
       if xclip_installed? && options[:clip] && !@xclip_buffer.empty?
         IO.popen('xclip', 'w+').puts @xclip_buffer
@@ -132,7 +153,7 @@ opts = GetoptLong.new(['--help',    '-h', GetoptLong::NO_ARGUMENT],
                       ['--quiet',   '-q', GetoptLong::NO_ARGUMENT],
                       ['--no-clip', '-n', GetoptLong::NO_ARGUMENT])
 
-options = {}
+options = { :clip => true }
 
 opts.each do |opt, arg|
   case opt

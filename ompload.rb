@@ -40,6 +40,8 @@ module Ompload
       available in your PATH.
   USAGE
 
+  class ThrottledError < StandardError; end
+
   module CLI
     extend self
 
@@ -75,6 +77,11 @@ module Ompload
           @errors += 1
         end
       end
+    rescue ThrottledError
+      STDERR.puts "Got throttled when trying to ompload '#{file_path}'"
+      STDERR.puts "Increasing wait and attempting to continue..."
+      @errors += 1
+      sleep 60 and retry
     end
 
     def upload_files_from_argv
@@ -113,15 +120,15 @@ module Ompload
       upload_files_from_argv if ARGV.size > 0
 
       if options[:clip] && !xclip_buf.empty?
-        p = IO.popen("xclip", "w+")
+        p = IO.popen('xclip', 'w+')
         p.puts xclip_buf
       end
 
-      if !options[:quiet]
+      unless options[:quiet]
         if @errors < 1
-          puts "Success."
+          puts 'Success.'
         else
-          puts "Finished with #{@errors} errors."
+          puts 'Finished with #{@errors} errors.'
         end
       end
     end

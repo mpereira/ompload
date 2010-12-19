@@ -1,11 +1,7 @@
 #!/usr/bin/env ruby
 #
-# Copyright 2007-2009 David Shakaryan <omp@gentoo.org>
-# Copyright 2007-2009 Brenden Matthews <brenden@diddyinc.com>
-#
+# Copyright (c) 2010 Murilo Soares Pereira
 # Distributed under the terms of the GNU General Public License v3
-#
-# Special thanks to Christoph for a patch.
 #
 
 require 'singleton'

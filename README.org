@@ -1,0 +1,15 @@
+* ompload
+** Author
+   [[http://www.comp.ufscar.br/~murilo][Murilo Soares Pereira]]
+** License
+   Distributed under the terms of the GNU General Public License v3
+** Original project
+*** [[http://git.omp.am/?p=omploader.git;a=blob;f=ompload;hb=HEAD][Url]]
+*** Copyright
+    Copyright 2007-2009 David Shakaryan <omp@gentoo.org>
+
+    Copyright 2007-2009 Brenden Matthews <brenden@diddyinc.com>
+
+    Distributed under the terms of the GNU General Public License v3
+
+    Special thanks to Christoph for a patch.

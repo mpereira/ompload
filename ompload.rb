@@ -11,7 +11,6 @@
 require 'singleton'
 require 'getoptlong'
 require 'tempfile'
-require 'iconv'
 
 class XclipBuffer
   include Singleton

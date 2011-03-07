@@ -1,5 +1,5 @@
 * ompload
-  Upload files to [[http://ompldr.org][omploader]].
+  Upload files to [[http://ompldr.org/][omploader]].
 ** Author
    [[http://murilopereira.com][Murilo Pereira]]
 ** License

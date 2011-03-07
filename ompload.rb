@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #
-# Copyright (c) 2010 Murilo Soares Pereira
+# Copyright 2010-2011 Murilo Pereira <murilo@murilopereira.com>
 # Distributed under the terms of the GNU General Public License v3
 #
 

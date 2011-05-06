@@ -1,11 +1,4 @@
-#!/usr/bin/env ruby
-#
-# Copyright 2010-2011 Murilo Pereira <murilo@murilopereira.com>
-# Distributed under the terms of the GNU General Public License v3
-#
-
 require 'singleton'
-require 'getoptlong'
 require 'tempfile'
 
 class XclipBuffer
@@ -62,6 +55,7 @@ module Omploader
 end
 
 module Ompload
+  VERSION = '1.0.0'
   MAX_FILE_SIZE = 2**32
 
   USAGE = <<-USAGE.gsub(/^    /, '')
@@ -213,28 +207,3 @@ module Ompload
     end
   end
 end
-
-opts = GetoptLong.new(['--help',     '-h', GetoptLong::NO_ARGUMENT],
-                      ['--filename', '-f', GetoptLong::REQUIRED_ARGUMENT],
-                      ['--quiet',    '-q', GetoptLong::NO_ARGUMENT],
-                      ['--url',      '-u', GetoptLong::NO_ARGUMENT],
-                      ['--no-clip',  '-n', GetoptLong::NO_ARGUMENT])
-
-options = { :clip => true }
-
-opts.each do |opt, arg|
-  case opt
-  when '--help'
-    options[:help] = true
-  when '--filename'
-    options[:file_name] = arg
-  when '--quiet'
-    options[:quiet] = true
-  when '--url'
-    options[:url] = true
-  when '--no-clip'
-    options[:clip] = false
-  end
-end
-
-Ompload::CLI.run(ARGV, options) if $0 == __FILE__

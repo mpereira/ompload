@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.author   = 'Murilo Pereira'
   s.email    = 'murilo@murilopereira.com'
-  s.homepage = 'https://github.com/murilasso/ompload'
+  s.homepage = 'https://github.com/mpereira/ompload'
   s.summary  = 'Upload files to omploader.'
 
   s.required_rubygems_version = '>= 1.3.6'

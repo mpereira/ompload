@@ -59,20 +59,13 @@ module Ompload
   MAX_FILE_SIZE = 2**32
 
   USAGE = <<-USAGE.gsub(/^    /, '')
-    Usage:  ompload [-h|--help] [options] [file(s)]
+    Usage: ompload [-h|--help] [options] [file(s)]
       -q, --quiet     Only output errors and warnings
-      -u, --url       Only output URL when finished
-      -f, --filename  Filename to use when posting data
-                      from stdin
-      -n, --no-clip   Disable copying of URL to clipboard
-                      (this feature uses the xclip tool)
+      -u, --url       Only output URLs
+      -f, --filename  File name on omploader for when piping data via stdin
+      -n, --no-clip   Disable copying of the URL to the clipboard
 
       You can supply a list of files or data via stdin (or both)
-
-      This script requires a copy of cURL in the path,
-      and will automatically copy the list of URLs to.
-      the X11 clipboard if the `xclip' program is
-      available in your PATH.
   USAGE
 
   class ThrottledError < StandardError; end

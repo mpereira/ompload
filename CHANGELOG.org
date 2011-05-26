@@ -1,4 +1,0 @@
-* 1.0.0
-#+BEGIN_SRC
-Initial release.
-#+END_SRC

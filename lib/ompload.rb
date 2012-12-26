@@ -94,9 +94,9 @@ module Ompload
       "error: '#{file_path}' does not exist or is not a regular file"
     end
 
-    def file_too_big(file_path)
+    def payload_too_big(file_path, file_size)
       "error: '#{file_path}' exceeds #{MAX_FILE_SIZE} bytes " <<
-      "(size is #{File.size(file_path)})."
+      "(size is #{file_size})."
     end
   end
 
@@ -119,7 +119,7 @@ module Ompload
           STDERR.puts Message.invalid_file(file_path)
           ErrorCounter.instance.increment!
         elsif File.size(file_path) > MAX_FILE_SIZE
-          STDERR.puts Message.file_too_big(file_path)
+          STDERR.puts Message.payload_too_big(file_path,File.size(file_path))
           ErrorCounter.instance.increment!
         else
           handle_file(file_path, options)
@@ -129,11 +129,16 @@ module Ompload
 
     def handle_data(data, options = {})
       file_name = options[:file_name] || 'piped data'
-      puts Message.progress(file_name) if !options[:quiet] && !options[:url]
-      response = upload_with_curl({ :data => data,
-                                    :file_name => file_name,
-                                    :silent => options[:quiet] || options[:url] })
-      handle_response!(response, file_name, options)
+      if data.bytesize > MAX_FILE_SIZE
+          STDERR.puts Message.payload_too_big(file_name, data.bytesize)
+          ErrorCounter.instance.increment!
+      else
+          puts Message.progress(file_name) if !options[:quiet] && !options[:url]
+          response = upload_with_curl({ :data => data,
+                                      :file_name => file_name,
+                                      :silent => options[:quiet] || options[:url] })
+          handle_response!(response, file_name, options)
+      end
     rescue ThrottledError
       STDERR.puts Message.throttled(file_name)
       sleep(60) and retry
@@ -184,7 +189,7 @@ module Ompload
       abort(USAGE) if ARGV.size < 1 && !piped_data_given? || options[:help]
 
       UploadsHandler.handle_files(ARGV, options)
-      UploadsHandler.handle_data(STDIN.read(4096), options) if piped_data_given?
+      UploadsHandler.handle_data(STDIN.read(), options) if piped_data_given?
 
       if xclip_installed? && options[:clip] && !XclipBuffer.instance.content.empty?
         IO.popen('xclip', 'w+').puts XclipBuffer.instance.content

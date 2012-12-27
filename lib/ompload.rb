@@ -56,7 +56,7 @@ end
 
 module Ompload
   VERSION = '1.0.1'
-  MAX_FILE_SIZE = 2**32
+  MAX_FILE_SIZE = 2**20
 
   USAGE = <<-USAGE.gsub(/^    /, '')
     Usage: ompload [-h|--help] [options] [file(s)]

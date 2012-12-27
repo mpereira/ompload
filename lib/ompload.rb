@@ -64,6 +64,7 @@ module Ompload
       -u, --url       Only output URLs
       -f, --filename  File name on omploader for when piping data via stdin
       -n, --no-clip   Disable copying of the URL to the clipboard
+      -v, --version   Show version
 
       You can supply a list of files or data via stdin (or both)
   USAGE
@@ -184,6 +185,11 @@ module Ompload
     def run(argv, options = {})
       unless curl_installed?
         abort('error: curl missing or not in path. Cannot continue.')
+      end
+
+      if options[:version]
+        puts VERSION
+        exit
       end
 
       abort(USAGE) if ARGV.size < 1 && !piped_data_given? || options[:help]

@@ -14,6 +14,7 @@ opts = GetoptLong.new(['--help',     '-h', GetoptLong::NO_ARGUMENT],
                       ['--filename', '-f', GetoptLong::REQUIRED_ARGUMENT],
                       ['--quiet',    '-q', GetoptLong::NO_ARGUMENT],
                       ['--url',      '-u', GetoptLong::NO_ARGUMENT],
+                      ['--version',  '-v', GetoptLong::NO_ARGUMENT],
                       ['--no-clip',  '-n', GetoptLong::NO_ARGUMENT])
 
 options = { :clip => true }
@@ -30,6 +31,8 @@ opts.each do |opt, arg|
     options[:url] = true
   when '--no-clip'
     options[:clip] = false
+  when '--version'
+    options[:version] = true
   end
 end
 

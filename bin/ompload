@@ -1,6 +1,9 @@
 #!/usr/bin/env ruby
 #
-# Copyright 2010-2011 Murilo Pereira <murilo@murilopereira.com>
+# Copyright 2007-2012 David Shakaryan <omp@gentoo.org>
+# Copyright 2007-2012 Brenden Matthews <brenden@diddyinc.com>
+# Copyright 2010-2012 Murilo Pereira <murilo@murilopereira.com>
+#
 # Distributed under the terms of the GNU General Public License v3
 #
 

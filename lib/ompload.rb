@@ -55,7 +55,7 @@ module Omploader
 end
 
 module Ompload
-  VERSION = '1.0.1'
+  VERSION = '1.0.2'
   MAX_FILE_SIZE = 2**20
 
   USAGE = <<-USAGE.gsub(/^    /, '')
